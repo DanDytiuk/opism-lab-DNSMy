@@ -167,19 +167,22 @@ lab.                    60      IN      SOA     ns1.nic.lab. hostmaster.nic.lab.
 Вивід `zone-reload`:
 
 ```text
-
+zone-reload
+zone se-201-04.lab/IN: loaded serial 2026102201
+OK
+zone reload up-to-date
 ```
 
 <!-- Шість запитів до 10.53.1.1 з +norec, по одному на кожен рядок таблиці картки. -->
 
 | Запис | status | Прапорець `aa` | Значення в ANSWER | TTL | Відповідає картці (так/ні) |
 |---|---|---|---|---|---|
-| `www` A | | | | | |
-| псевдонім CNAME | | | | | |
-| `mail` A | | | | | |
-| `@` MX | | | | | |
-| `@` TXT | | | | | |
-| другий хост A | | | | | |
+| `www` A | NOERROR | \/ | 10.53.0.80 | 120 | так |
+| псевдонім CNAME | NOERROR | \/ | www.se-201-04.lab. | 120 | так |
+| `mail` A | NOERROR | \/ | 10.53.0.80 | 120 | так |
+| `@` MX | NOERROR | \/ | 15 mail.se-201-04.lab. | 120 | так |
+| `@` TXT | NOERROR | \/ | "lab-token=66634402" | 120 | так |
+| другий хост A | NOERROR | \/ | 10.53.0.81 | 25 | так |
 
 Порівняння відповідей резолвера та власного сервера:
 
@@ -189,10 +192,10 @@ lab.                    60      IN      SOA     ns1.nic.lab. hostmaster.nic.lab.
 
 | Запит | flags | ANSWER (кількість, типи) | AUTHORITY (кількість, типи) | ADDITIONAL (кількість, типи) | TTL |
 |---|---|---|---|---|---|
-| псевдонім через resolver-a | | | | | |
-| псевдонім через 10.53.1.1 | | | | | |
-| MX через resolver-a | | | | | |
-| MX через 10.53.1.1 | | | | | |
+| псевдонім через resolver-a | qr rd ra | 2 CNAME, A | 0 | 1 OPT? | 120 |
+| псевдонім через 10.53.1.1 | qr aa | 2 CNAME, A | 1 NS | 2 A OPT? | 120 |
+| MX через resolver-a | qr rd ra | 1 MX | 0 | 1 OPT? | 120 |
+| MX через 10.53.1.1 | qr aa | 1 MX | 1 NS | 3 A A OPT? | 120 |
 
 Пояснення відмінностей:
 
