@@ -93,34 +93,127 @@
 
 Декодоване значення параметра URI 2: **Київ**
 
-Чому URI 5 не має складової host, хоча містить символ `@`: **Символ @ є частиною адреси електронної пошти admin@se-201-04.lab, через цее не є складовою host**
+Чому URI 5 не має складової host, хоча містить символ `@`: **Символ @ є частиною адреси електронної пошти admin@se-201-04.lab, через це не є складовою host**
 
 ### 1.2. Перевірка (після завдання 3)
 
 <!-- Для URI 1–3: рядки запиту (починаються з ">") і тіло відповіді сервера. -->
 
 ```text
+root@ns-se-201-04:/# curl -v 'http://www.se-201-04.lab/orders/archive?q=54&from=asc#results'
+* Host www.se-201-04.lab:80 was resolved.
+* IPv6: (none)
+* IPv4: 10.53.0.80
+*   Trying 10.53.0.80:80...
+* Connected to www.se-201-04.lab (10.53.0.80) port 80
+> GET /orders/archive?q=54&from=asc HTTP/1.1
+> Host: www.se-201-04.lab
+> User-Agent: curl/8.5.0
+> Accept: */*
+> 
+< HTTP/1.1 200 OK
+< Server: nginx/1.24.0 (Ubuntu)
+< Date: Thu, 29 Oct 2026 19:35:15 GMT
+< Content-Type: text/plain
+< Content-Length: 142
+< Connection: keep-alive
+< 
+server: web-a
+Host: www.se-201-04.lab
+request URI: /orders/archive?q=54&from=asc
+path: /orders/archive
+query: q=54&from=asc
+client: 10.53.1.1
+* Connection #0 to host www.se-201-04.lab left intact
 
+
+root@ns-se-201-04:/# curl -v 'http://api.se-201-04.lab:80/archive/?q=%D0%BA%D0%B8%D1%97%D0%B2'
+* Host api.se-201-04.lab:80 was resolved.
+* IPv6: (none)
+* IPv4: 10.53.0.80
+*   Trying 10.53.0.80:80...
+* Connected to api.se-201-04.lab (10.53.0.80) port 80
+> GET /archive/?q=%D0%BA%D0%B8%D1%97%D0%B2 HTTP/1.1
+> Host: api.se-201-04.lab
+> User-Agent: curl/8.5.0
+> Accept: */*
+> 
+< HTTP/1.1 200 OK
+< Server: nginx/1.24.0 (Ubuntu)
+< Date: Thu, 29 Oct 2026 19:36:23 GMT
+< Content-Type: text/plain
+< Content-Length: 156
+< Connection: keep-alive
+< 
+server: web-a
+Host: api.se-201-04.lab
+request URI: /archive/?q=%D0%BA%D0%B8%D1%97%D0%B2
+path: /archive/
+query: q=%D0%BA%D0%B8%D1%97%D0%B2
+client: 10.53.1.1
+* Connection #0 to host api.se-201-04.lab left intact
+
+
+root@ns-se-201-04:/# curl -v 'http://user:pass@test.se-201-04.lab/orders#section-2'
+* Host test.se-201-04.lab:80 was resolved.
+* IPv6: (none)
+* IPv4: 10.53.0.81
+*   Trying 10.53.0.81:80...
+* Connected to test.se-201-04.lab (10.53.0.81) port 80
+* Server auth using Basic with user 'user'
+> GET /orders HTTP/1.1
+> Host: test.se-201-04.lab
+> Authorization: Basic dXNlcjpwYXNz
+> User-Agent: curl/8.5.0
+> Accept: */*
+> 
+< HTTP/1.1 200 OK
+< Server: nginx/1.24.0 (Ubuntu)
+< Date: Thu, 29 Oct 2026 19:37:11 GMT
+< Content-Type: text/plain
+< Content-Length: 100
+< Connection: keep-alive
+< 
+server: web-b
+Host: test.se-201-04.lab
+request URI: /orders
+path: /orders
+query: 
+client: 10.53.1.1
+* Connection #0 to host test.se-201-04.lab left intact
+root@ns-se-201-04:/# 
 ```
 
 Значення заголовка `Authorization` і результат декодування:
 
 ```text
-
+Authorization: Basic dXNlcjpwYXNz
+Декодування - через Base64 видало user:pass
 ```
 
 URI 4: етап, на якому запит не вдається (пошук імені / TCP / TLS), і рядки виводу, що це підтверджують:
 
 ```text
-
+* IPv4: 10.53.0.80
+*   Trying 10.53.0.80:8443...
+* connect to 10.53.0.80 port 8443 from 10.53.1.1 port 52870 failed: Connection refused
+* Failed to connect to www.se-201-04.lab port 8443 after 0 ms: Couldn't connect to server
+* Closing connection
+curl: (7) Failed to connect to www.se-201-04.lab port 8443 after 0 ms: Couldn't connect to server
 ```
 
 | Запит | `request URI`, отриманий сервером | `path`, отриманий сервером |
 |---|---|---|
-| звичайний | | |
-| `--path-as-is` | | |
+| звичайний | - | - |
+| `--path-as-is` | request URI: /orders/../archive | path: /archive |
 
 Розбіжності між URI та тим, що отримав сервер, і їх пояснення:
+```text
+В 4 URI відхилено підключення,
+в 3 URI Authoriaztion закодовано user:pass через Base64,
+В 2 URI Host без 80 порту,
+в 1 URI result не передається серверу
+```
 
 ## Завдання 2. Проходження ієрархії вручну
 
@@ -137,24 +230,24 @@ URI 4: етап, на якому запит не вдається (пошук і
 Вивід `dig ns.sNN.lab A +trace`: 
 
 ```text
-root@ns-se-201-04:/# dig ns.sNN.lab A +trace
+root@ns-se-201-04:/# dig ns.s-201-04.lab A +trace
 
-; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> ns.sNN.lab A +trace
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> ns.s-201-04.lab A +trace
 ;; global options: +cmd
-.                       85910   IN      NS      a.root-servers.net.
+.                       85785   IN      NS      a.root-servers.net.
 ;; Received 59 bytes from 10.53.0.53#53(10.53.0.53) in 0 ms
 
 lab.                    172800  IN      NS      ns1.nic.lab.
-;; Received 111 bytes from 10.53.0.2#53(a.root-servers.net) in 80 ms
+;; Received 116 bytes from 10.53.0.2#53(a.root-servers.net) in 79 ms
 
 lab.                    60      IN      SOA     ns1.nic.lab. hostmaster.nic.lab. 1792691979 1800 900 604800 60
-;; Received 128 bytes from 10.53.0.3#53(ns1.nic.lab) in 41 ms
+;; Received 133 bytes from 10.53.0.3#53(ns1.nic.lab) in 78 ms
 ```
 
 | Запит | TTL запису NS | Прапорець `aa` | Секція, у якій міститься NS |
 |---|---|---|---|
-| `dig @10.53.0.3 sNN.lab NS +norec` | - | \/ | SOA |
-| `dig @10.53.1.1 sNN.lab NS +norec` | - | - | - |
+| `dig @10.53.0.3 se-201-04.lab NS +norec` | 3600 | - тільки qr | AUTHORITY |
+| `dig @10.53.1.1 se-201-04.lab NS +norec` | 120 | \/ | ANSWER |
 
 1. Які відповіді є відсиланнями і за якими ознаками це визначено? **Відсиланням є відповідь DNS-сервера, яка не містить запитаної IP-адреси, а вказує на інший DNS-сервер, до якого потрібно звернутися для отримання подальшої інформації. У результаті команди - повернулося у секції AUTHORITY NS-запис lab. IN NS ns1.nic.lab., а в секції ADDITIONAL — IP-адресу 10.53.0.3 цього сервера.**
 
@@ -187,7 +280,8 @@ zone reload up-to-date
 Порівняння відповідей резолвера та власного сервера:
 
 ```text
-
+Повертається відповідь з доп значеннями у flags, а саме rd і ra
+що використовуються при рекурсії і її успішність 
 ```
 
 | Запит | flags | ANSWER (кількість, типи) | AUTHORITY (кількість, типи) | ADDITIONAL (кількість, типи) | TTL |
@@ -202,57 +296,83 @@ zone reload up-to-date
 Повідомлення `zone-check` після тимчасового додавання `@ IN CNAME www`:
 
 ```text
-
+root@ns-se-201-04:/# zone-check
+dns_master_load: /lab/zone/se-201-04.lab.zone:21: se-201-04.lab: CNAME and other data
+zone se-201-04.lab/IN: loading from master file /lab/zone/se-201-04.lab.zone failed: CNAME and other data
+zone se-201-04.lab/IN: not loaded due to errors.
 ```
 
-1. Який TTL має кожен запис зони і звідки це значення взято?
+1. Який TTL має кожен запис зони і звідки це значення взято? ** Самі прописуємо через zone edit у багатьох випадках 120 секунд і вказуємо для яких записів яке значення **
 
-2. Скільки записів містить секція ANSWER у відповіді на запит псевдоніма і чому?
+2. Скільки записів містить секція ANSWER у відповіді на запит псевдоніма і чому? ** Секція ANSWER має 2 записи CNAME і А, CNAME говорить нам про те що він є www.se-201-04.lab, А - IP адресу** 
 
-3. Чому запис CNAME неможливо розмістити для імені `@`?
+3. Чому запис CNAME неможливо розмістити для імені `@`? ** CNAME неможливо розмістити для імені `@` тому що якщо вже є запис с CNAME то не може бути їх 2 **
 
 ## Завдання 4. TTL і видимість змін
 
 Два запити з інтервалом 5 с:
 
 ```text
-
+root@ns-se-201-04:/# dig www.se-201-04.lab +noall +answer
+www.se-201-04.lab.      120     IN      A       10.53.0.80
+root@ns-se-201-04:/# dig www.se-201-04.lab +noall +answer
+www.se-201-04.lab.      110     IN      A       10.53.0.80
 ```
 
-**Прогноз** (записати до вимірювання). Формула часу появи нової адреси через залишок R, найбільша можлива затримка:
+**Прогноз** (записати до вимірювання). Формула часу появи нової адреси через залишок R, найбільша можлива затримка: ** t + R = t new **
 
 Перевірка, що сервер до `zone-reload` повертає стару адресу:
 
 ```text
-
+root@ns-se-201-04:/# dig @10.53.1.1 www.se-201-04.lab +norec +short
+10.53.0.80
 ```
 
 Залишок R і час (крок 4), час `zone-reload` (крок 5), перевірка на сервері (крок 6):
 
 ```text
+root@ns-se-201-04:/# date +%T; dig www.se-201-04.lab +noall +answer
+20:19:47
+www.se-201-04.lab.      120     IN      A       10.53.0.80
 
+root@ns-se-201-04:/# zone-reload; date +%T 
+zone se-201-04.lab/IN: loaded serial 2026102202
+OK
+zone reload up-to-date
+20:20:22
+
+root@ns-se-201-04:/# dig @10.53.1.1 www.se-201-04.lab +norec +short 
+10.53.0.81
 ```
 
-Очікуваний час появи нової адреси (підставити R у формулу):
+Очікуваний час появи нової адреси (підставити R у формулу): ** 20:21:47 **
 
 Вивід циклу спостереження (перші два рядки, два останні рядки зі старою адресою, рядок з новою адресою):
 
 ```text
+P.S. Трохи протупив і запустив пізніше +- на нестачу секунд щоб було 2 хвилини на оновлення
+root@ns-se-201-04:/# while true; do echo "$(date +%T) $(dig +short www.se-201-04.lab)"; sleep 2; done
+20:35:35 10.53.0.80
+20:35:37 10.53.0.80
 
+20:36:39 10.53.0.80
+20:36:41 10.53.0.81
 ```
 
-Рядок `server:` з відповіді `curl`:
+Рядок `server:` з відповіді `curl`: ** server: web-b **
 
 | Час зміни | Очікуваний час | Спостережений час | Виміряна затримка, с | Прогноз, с |
 |---|---|---|---|---|
-| | | | | |
+| 20:35:11 | 20:37:11 | 20:36:41 | 90 | 120 |
 
-1. Чим пояснюється розбіжність між прогнозом і виміряним значенням?
+1. Чим пояснюється розбіжність між прогнозом і виміряним значенням? ** Розбіжність пояснюється тим, що на момент зміни запису залишалося менше ніж 120 секунд **
 
-2. Якою була б найбільша можлива затримка для цього запису і за яких умов?
+2. Якою була б найбільша можлива затримка для цього запису і за яких умов? ** 120 секунд **
 
 3. Як слід діяти, щоб перенести сервіс на нову адресу, якщо TTL запису становить 86 400 с?
-
+```text
+Спочатку зменшити TTL до тих самих 120 секунд, і дочекатися, поки попередній TTL пройде. Потім змінити IP-адресу та перезавантажити зону через zone-reload І потім якщо потрібно повернути до 86 400 секунд значення TTL.
+```
 ## Завдання 5. Негативне кешування
 
 **Прогноз** (записати до вимірювання). Формула за RFC 2308 і розраховане значення:
