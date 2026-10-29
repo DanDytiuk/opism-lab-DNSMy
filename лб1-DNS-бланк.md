@@ -376,36 +376,98 @@ root@ns-se-201-04:/# while true; do echo "$(date +%T) $(dig +short www.se-201-04
 ## Завдання 5. Негативне кешування
 
 **Прогноз** (записати до вимірювання). Формула за RFC 2308 і розраховане значення:
+```text
+Negative Cache TTL = min(SOA_TTL, MINIMUM) формула за RFC 2308
+
+В моєму випадку це буде 20 секунд
+
+| TTL самого запису SOA | 20 с |
+| Поле `minimum` у SOA | 40 с |
+```
 
 Перевірка, що сервер до `zone-reload` повертає `NXDOMAIN`:
 
 ```text
+root@ns-se-201-04:/dig @10.53.1.1 new-rlwml.se-201-04.lab +norec
 
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @10.53.1.1 new-rlwml.se-201-04.lab +norec
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 1091
+;; flags: qr aa; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: a3835c2ed76d464f010000006ae3b3b9e2c1c79e543d4968 (good)
+;; QUESTION SECTION:
+;new-rlwml.se-201-04.lab.       IN      A
+
+;; AUTHORITY SECTION:
+se-201-04.lab.          20      IN      SOA     ns.se-201-04.lab. admin.se-201-04.lab. 2026102204 3600 600 86400 40
+
+;; Query time: 0 msec
+;; SERVER: 10.53.1.1#53(10.53.1.1) (UDP)
+;; WHEN: Thu Oct 29 20:59:37 UTC 2026
+;; MSG SIZE  rcvd: 125
 ```
 
 Запит через resolver-a (крок 3), час `zone-reload` (крок 4), перевірка на сервері (крок 5):
 
 ```text
+root@ns-se-201-04:/# date +%T; dig new-rlwml.se-201-04.lab
+21:00:49
 
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> new-rlwml.se-201-04.lab
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 6496
+;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; QUESTION SECTION:
+;new-rlwml.se-201-04.lab.       IN      A
+
+;; AUTHORITY SECTION:
+se-201-04.lab.          20      IN      SOA     ns.se-201-04.lab. admin.se-201-04.lab. 2026102204 3600 600 86400 40
+
+;; Query time: 1 msec
+;; SERVER: 10.53.0.53#53(10.53.0.53) (UDP)
+;; WHEN: Thu Oct 29 21:00:49 UTC 2026
+;; MSG SIZE  rcvd: 97
+
+root@ns-se-201-04:/#  zone-reload; date +%T
+zone se-201-04.lab/IN: loaded serial 2026102205
+OK
+zone reload queued
+21:00:50
+
+root@ns-se-201-04:/# dig @10.53.1.1 new-rlwml.se-201-04.lab +norec +short
+10.53.0.80
 ```
 
 Вивід циклу спостереження (перші два рядки, останній рядок з `NXDOMAIN`, перший рядок з `NOERROR`):
 
 ```text
+21:00:54 status: NXDOMAIN
+21:00:56 status: NXDOMAIN
 
+21:01:08 status: NXDOMAIN
+21:01:10 status: NOERROR
 ```
 
 | Негативну відповідь закешовано | Запис створено | Ім'я резолвиться через resolver-a | Виміряно, с | Прогноз, с |
 |---|---|---|---|---|
-| | | | | |
+| 21:00:54 | 21:00:50 | 21:01:10 | 16 | 20 |
 
 <!-- Якщо завдання повторювалося з іншим ім'ям (new2-…), зазначити це й причину. -->
 
-1. Чому тривалість негативного кешування визначається записом SOA, а не записом, який запитували?
+1. Чому тривалість негативного кешування визначається записом SOA, а не записом, який запитували? ** Запис не існує, тому не має власного TTL і тривалість визначається SOA **
 
-2. Чи збігається TTL запису SOA в секції AUTHORITY з TTL запису SOA у файлі зони? Поясніть.
+2. Чи збігається TTL запису SOA в секції AUTHORITY з TTL запису SOA у файлі зони? Поясніть. ** І так і ні в різниці від заданих значень часу minimum і TTL **
 
-3. Скрипт розгортання перевіряє ім'я сервісу до створення запису, а потім одразу після. Що він побачить і як це виправити?
+3. Скрипт розгортання перевіряє ім'я сервісу до створення запису, а потім одразу після. Що він побачить і як це виправити? ** Спочатку скрипт видає NXDOMAIN, після створення запису може далі отримувати NXDOMAIN через негативне кешування виправляється це через повторення запитів з деяким інтервалом і врешті дочекатися завершення кешування **
 
 ## Завдання 6. Затримка пошуку імені
 
