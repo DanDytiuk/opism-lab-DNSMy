@@ -67,7 +67,7 @@
 | Другий хост і його TTL, с | |
 | Пріоритет MX | |
 | Токен TXT | |
-| Ім'я для завдання 5 | |
+| Ім'я для завдання 5 | ім'я `new-rlwml.se-201-04.lab` |
 
 ## Завдання 1. Складові URI
 
@@ -547,13 +547,65 @@ og/named/queries.log
 Кешування запису в обох резолверах (крок 2) і час зупинки сервера (крок 3):
 
 ```text
-
+root@ns-se-201-04:/# dig @10.53.0.53 test.se-201-04.lab +noall +answer
+test.se-201-04.lab.     25      IN      A       10.53.0.81
+root@ns-se-201-04:/# dig @10.53.0.54 test.se-201-04.lab +noall +answer
+test.se-201-04.lab.     25      IN      A       10.53.0.81
 ```
 
 Запити із заміром часу (крок 5):
 
 ```text
+root@ns-se-201-04:/# time dig @10.53.0.53 test.se-201-04.lab +tries=1 +timeout=30
+;; communications error to 10.53.0.53#53: timed out
 
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @10.53.0.53 test.se-201-04.lab +tries=1 +timeout=30
+; (1 server found)
+;; global options: +cmd
+;; no servers could be reached
+
+real    0m30.052s
+user    0m0.007s
+sys     0m0.006s
+
+root@ns-se-201-04:/# time dig @10.53.0.53 test.se-201-04.lab +tries=1 +timeout=30
+;; communications error to 10.53.0.53#53: timed out
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @10.53.0.53 test.se-201-04.lab +tries=1 +timeout=30
+; (1 server found)
+;; global options: +cmd
+;; no servers could be reached
+
+real    0m30.039s
+user    0m0.008s
+sys     0m0.004s
+
+root@ns-se-201-04:/# time dig @10.53.0.54 test.se-201-04.lab +tries=1 +timeout=30
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @10.53.0.54 test.se-201-04.lab +tries=1 +timeout=30
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 42058
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; QUESTION SECTION:
+;test.se-201-04.lab.            IN      A
+
+;; ANSWER SECTION:
+test.se-201-04.lab.     30      IN      A       10.53.0.81
+
+;; Query time: 1800 msec
+;; SERVER: 10.53.0.54#53(10.53.0.54) (UDP)
+;; WHEN: Fri Oct 30 13:45:15 UTC 2026
+;; MSG SIZE  rcvd: 63
+
+
+real    0m1.823s
+user    0m0.009s
+sys     0m0.003s
 ```
 
 | Запит | status або тайм-аут | ANSWER, TTL | `real` |
@@ -565,30 +617,34 @@ og/named/queries.log
 Час `named-start` і вивід циклу спостереження до першої успішної відповіді (крок 6):
 
 ```text
-
+root@ns-se-201-04:/# named-start
+root@ns-se-201-04:/# while true; do echo "$(date +%T) $(dig @10.53.0.53 test.se-201-04.lab +short +tries=1 +ti
+meout=3)"; sleep 2; done
+13:57:04 10.53.0.81
 ```
 
 Перевірка після завдання (`dig @10.53.1.1 sNN.lab SOA +norec +short`):
 
 ```text
-
+root@ns-se-201-04:/# dig @10.53.1.1 se-201-04.lab SOA +norec +short
+ns.se-201-04.lab. admin.se-201-04.lab. 2026102205 3600 600 86400 40
 ```
 
 ### Постмортем
 
-1. Що сталося:
-2. Вплив на клієнтів resolver-a і resolver-b:
+1. Що сталося: ** Зупинено DNS сервер, після цього test.se-201-04.lab перестала бути доступною**
+2. Вплив на клієнтів resolver-a і resolver-b: ** resolver-a  намагався отримати інформацію від авторитативного сервера,а resolver-b повернув застарілий запис із кешу і через це можно отримати Ip адресу**
 3. Хронологія з виміряним часом:
-4. Чому кеш допоміг або не допоміг:
-5. Що слід змінити:
+4. Чому кеш допоміг або не допоміг: ** Кеш економить час для звернення до самих серверів **
+5. Що слід змінити: **?**
 
-1. Який TTL мав запис у відповіді resolver-b і навіщо такий TTL?
+1. Який TTL мав запис у відповіді resolver-b і навіщо такий TTL? ** Початковий TTL запису test.se-201-04.lab - 25 с. Після завершення 25 c resolver-b міг повернути застарілий запис. **
 
-2. Порівняйте результат і тривалість двох запитів до resolver-a. Якщо вони різняться, сформулюйте гіпотезу щодо причини; якщо ні, поясніть, що робить резолвер протягом цього часу.
+2. Порівняйте результат і тривалість двох запитів до resolver-a. Якщо вони різняться, сформулюйте гіпотезу щодо причини; якщо ні, поясніть, що робить резолвер протягом цього часу. ** Перший запит після завершення TTL змушує resolver-a звернутися до авторитетного DNS-сервера для отримання актуального запису. **
 
-3. Чому після `named-start` ім'я через resolver-a зарезолвилося не одразу?
+3. Чому після `named-start` ім'я через resolver-a зарезолвилося не одразу? ** Після запуску авторитативного DNS-сервера resolver-a не обов'язково відразу повторює запит **
 
-4. У якій ситуації serve-stale шкодить, а не допомагає? Пов'яжіть відповідь із завданням 4.
+4. У якій ситуації serve-stale шкодить, а не допомагає? Пов'яжіть відповідь із завданням 4. ** Serve-Stale може зашкодити, якщо DNS-запис уже застарів і його значення змінилося. Якщо резолвер продовжить повертати стару IP-адресу 10.53.0.80, клієнт може підключитися до неправильного сервера або взагалі не отримати доступ до потрібного ресурсу. **
 
 ## Фінальний файл зони
 
