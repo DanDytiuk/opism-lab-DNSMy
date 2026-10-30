@@ -230,18 +230,22 @@ curl: (7) Failed to connect to www.se-201-04.lab port 8443 after 0 ms: Couldn't 
 Вивід `dig ns.sNN.lab A +trace`: 
 
 ```text
-root@ns-se-201-04:/# dig ns.s-201-04.lab A +trace
+root@ns-se-201-04:/# dig ns.se-201-04.lab A +trace
 
-; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> ns.s-201-04.lab A +trace
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> ns.se-201-04.lab A +trace
 ;; global options: +cmd
-.                       85785   IN      NS      a.root-servers.net.
-;; Received 59 bytes from 10.53.0.53#53(10.53.0.53) in 0 ms
+.                       86400   IN      NS      a.root-servers.net.
+;; Received 59 bytes from 10.53.0.53#53(10.53.0.53) in 320 ms
 
 lab.                    172800  IN      NS      ns1.nic.lab.
-;; Received 116 bytes from 10.53.0.2#53(a.root-servers.net) in 79 ms
+;; Received 117 bytes from 10.53.0.2#53(a.root-servers.net) in 80 ms
 
-lab.                    60      IN      SOA     ns1.nic.lab. hostmaster.nic.lab. 1792691979 1800 900 604800 60
-;; Received 133 bytes from 10.53.0.3#53(ns1.nic.lab) in 78 ms
+se-201-04.lab.          3600    IN      NS      ns.se-201-04.lab.
+;; Received 103 bytes from 10.53.0.3#53(ns1.nic.lab) in 79 ms
+
+ns.se-201-04.lab.       120     IN      A       10.53.1.1
+se-201-04.lab.          120     IN      NS      ns.se-201-04.lab.
+;; Received 103 bytes from 10.53.1.1#53(ns.se-201-04.lab) in 0 ms
 ```
 
 | Запит | TTL запису NS | Прапорець `aa` | Секція, у якій міститься NS |
