@@ -475,37 +475,66 @@ root@ns-se-201-04:/# dig @10.53.1.1 new-rlwml.se-201-04.lab +norec +short
 
 | Ім'я | Перший запит | Повторний запит |
 |---|---|---|
-| A: нове ім'я у власній зоні | | |
-| B: нове ім'я в зоні `lab.` | | |
-| C: ім'я в неіснуючому TLD | | |
-| D: `www.sNN.lab` після перезапуску резолвера | | |
+| A: нове ім'я у власній зоні | сервер se-201-04.lab | кеш resolver |
+| B: нове ім'я в зоні `lab.` | зона snn.lab | кеш resolver |
+| C: ім'я в неіснуючому TLD | кореневий сервер | кеш resolver |
+| D: `www.sNN.lab` після перезапуску резолвера | той сервер який буде питатися | кеш resolver |
 
 Вивід вимірювань:
 
 ```text
+root@ns-se-201-04:/# A=y$RANDOM.sNN.lab; dig $A | grep 'Query time'; dig $A | grep 'Query time'
+B=x$RANDOM.lab; dig $B | grep 'Query time'; dig $B | grep 'Query time'
+C=x$RANDOM.zz$RANDOM; dig $C | grep 'Query time'; dig $C | grep 'Query time'
+;; Query time: 39 msec
+;; Query time: 0 msec
+;; Query time: 40 msec
+;; Query time: 0 msec
+;; Query time: 81 msec
+;; Query time: 0 msec
 
+root@ns-se-201-04:/# A=y$RANDOM.sNN.lab; dig $A | grep 'Query time'; dig $A | grep 'Query time'
+B=x$RANDOM.lab; dig $B | grep 'Query time'; dig $B | grep 'Query time'
+C=x$RANDOM.zz$RANDOM; dig $C | grep 'Query time'; dig $C | grep 'Query time'
+;; Query time: 40 msec
+;; Query time: 1 msec
+;; Query time: 41 msec
+;; Query time: 0 msec
+;; Query time: 80 msec
+;; Query time: 0 msec
+root@ns-se-201-04:/# 
 ```
 
 | Ім'я | Перший запит, мс | Повторний, мс | Сервери, до яких звернувся резолвер (за журналами) |
 |---|---|---|---|
-| A | | | |
-| B | | | |
-| C | | | |
-| D | | | |
+| A | 39 | 0 | сервер se-201-04.lab |
+| B | 40 | 0 | зона snn.lab |
+| C | 81 | 0 | кореневий сервер |
+| D | 403 | 0 | кореневий сервер і сервер snn.lab  |
 
 Значення `time_namelookup` з `curl` після перезапуску резолвера:
 
 Фрагменти журналів запитів root, TLD і власного сервера для рядка D:
 
 ```text
-
+@DanDytiuk ➜ /workspaces/opism-lab-DNSMy (master) $ docker compose -f stand/compose.yaml exec root tail /var/l
+og/named/queries.log
+30-Oct-2026 13:14:08.599 client @0x76d104006078 10.53.0.53#60616 (.): query: . IN NS -E(0)DC (10.53.0.2)
+30-Oct-2026 13:14:08.680 client @0x76d0fc06ac88 10.53.0.53#13061 (a.root-servers.net): query: a.root-servers.net IN A -E(0)DC (10.53.0.2)
+30-Oct-2026 13:14:08.760 client @0x76d104006078 10.53.0.53#53396 (ns.se-201-04.lab): query: ns.se-201-04.lab IN A -E(0)DC (10.53.0.2)
+30-Oct-2026 13:14:09.264 client @0x76d104006078 10.53.0.54#28073 (.): query: . IN NS -E(0)DC (10.53.0.2)
+30-Oct-2026 13:14:09.345 client @0x76d0fc06ac88 10.53.0.54#39768 (a.root-servers.net): query: a.root-servers.net IN A -E(0)DC (10.53.0.2)
+30-Oct-2026 13:14:09.425 client @0x76d0fc06ac88 10.53.0.54#57327 (ns.se-201-04.lab): query: ns.se-201-04.lab IN A -E(0)DC (10.53.0.2)
+@DanDytiuk ➜ /workspaces/opism-lab-DNSMy (master) $ docker compose -f stand/compose.yaml exec tld tail /var/log/named/queries.log
+30-Oct-2026 13:14:08.881 client @0x7a6910005268 10.53.0.53#28464 (ns.se-201-04.lab): query: ns.se-201-04.lab IN A -E(0)DC (10.53.0.3)
+30-Oct-2026 13:14:09.546 client @0x7a6910005268 10.53.0.54#65070 (ns.se-201-04.lab): query: ns.se-201-04.lab IN A -E(0)DC (10.53.0.3)
 ```
 
-1. Яку затримку вносить кожен із серверів root, TLD і власний сервер? Покажіть, з яких рядків таблиці це випливає.
+1. Яку затримку вносить кожен із серверів root, TLD і власний сервер? Покажіть, з яких рядків таблиці це випливає. ** 39 , 40, 81 нове ім'я займає менеше часу на обробку **
 
-2. Чому в рядку A перший запит не проходить через root і TLD, хоча ім'я нове?
+2. Чому в рядку A перший запит не проходить через root і TLD, хоча ім'я нове? ** Нове лише доменне ім'я, а інформація про делегування se-201-04.lab уже збережена в кеші resolver **
 
-3. Вебсторінка завантажує ресурси з п'яти різних доменів. Як це впливає на час першого відкриття сторінки?
+3. Вебсторінка завантажує ресурси з п'яти різних доменів. Як це впливає на час першого відкриття сторінки? ** На це впливає фактор того що DNS пошук для кожної сторінки повинен бути **
 
 ## Завдання 7. Інцидент: зупинка власного сервера
 
