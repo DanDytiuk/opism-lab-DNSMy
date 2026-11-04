@@ -218,14 +218,90 @@ curl: (7) Failed to connect to www.se-201-04.lab port 8443 after 0 ms: Couldn't 
 ## Завдання 2. Проходження ієрархії вручну
 
 ```text
+root@ns-se-201-04:/# dig @10.53.0.2 ns.se-201-04.lab A +norec
 
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @10.53.0.2 ns.se-201-04.lab A +norec
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 7462
+;; flags: qr; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 37701da1b075d2ba010000006aeae040d3d8041fe4aedc9d (good)
+;; QUESTION SECTION:
+;ns.se-201-04.lab.              IN      A
+
+;; AUTHORITY SECTION:
+lab.                    172800  IN      NS      ns1.nic.lab.
+
+;; ADDITIONAL SECTION:
+ns1.nic.lab.            172800  IN      A       10.53.0.3
+
+;; Query time: 81 msec
+;; SERVER: 10.53.0.2#53(10.53.0.2) (UDP)
+;; WHEN: Wed Nov 04 07:35:28 UTC 2026
+;; MSG SIZE  rcvd: 117
+
+root@ns-se-201-04:/# dig @10.53.0.3 ns.se-201-04.lab A +norec
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @10.53.0.3 ns.se-201-04.lab A +norec
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 1011
+;; flags: qr; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 206764bee03d5583010000006aeae097f7d1e9fb09bbd5b1 (good)
+;; QUESTION SECTION:
+;ns.se-201-04.lab.              IN      A
+
+;; AUTHORITY SECTION:
+se-201-04.lab.          3600    IN      NS      ns.se-201-04.lab.
+
+;; ADDITIONAL SECTION:
+ns.se-201-04.lab.       3600    IN      A       10.53.1.1
+
+;; Query time: 81 msec
+;; SERVER: 10.53.0.3#53(10.53.0.3) (UDP)
+;; WHEN: Wed Nov 04 07:36:55 UTC 2026
+;; MSG SIZE  rcvd: 103
+
+root@ns-se-201-04:/# dig @10.53.1.1 ns.se-201-04.lab A +norec
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @10.53.1.1 ns.se-201-04.lab A +norec
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 25524
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: fe8647c56d24391d010000006aeae15a01b199044c7923b4 (good)
+;; QUESTION SECTION:
+;ns.se-201-04.lab.              IN      A
+
+;; ANSWER SECTION:
+ns.se-201-04.lab.       120     IN      A       10.53.1.1
+
+;; AUTHORITY SECTION:
+se-201-04.lab.          120     IN      NS      ns.se-201-04.lab.
+
+;; Query time: 1 msec
+;; SERVER: 10.53.1.1#53(10.53.1.1) (UDP)
+;; WHEN: Wed Nov 04 07:40:10 UTC 2026
+;; MSG SIZE  rcvd: 103
 ```
 
 | Сервер | status | flags | ANSWER | AUTHORITY | ADDITIONAL |
 |---|---|---|---|---|---|
 | 10.53.0.2 | NOERROR | qr | 0 | 1 | 2 |
-| 10.53.0.3 | NXDOMAIN | qr aa | 0 | 1 | 1 |
-| 10.53.1.1 | REFUSED | qr | 0 | 0 | 1 |
+| 10.53.0.3 | NOERROR | qr | 0 | 1 | 2 |
+| 10.53.1.1 | NOERROR | qr aa | 1 | 1 | 1 |
 
 Вивід `dig ns.sNN.lab A +trace`: 
 
@@ -234,14 +310,14 @@ root@ns-se-201-04:/# dig ns.se-201-04.lab A +trace
 
 ; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> ns.se-201-04.lab A +trace
 ;; global options: +cmd
-.                       86400   IN      NS      a.root-servers.net.
-;; Received 59 bytes from 10.53.0.53#53(10.53.0.53) in 320 ms
+.                       85878   IN      NS      a.root-servers.net.
+;; Received 59 bytes from 10.53.0.53#53(10.53.0.53) in 1 ms
 
 lab.                    172800  IN      NS      ns1.nic.lab.
-;; Received 117 bytes from 10.53.0.2#53(a.root-servers.net) in 80 ms
+;; Received 117 bytes from 10.53.0.2#53(a.root-servers.net) in 81 ms
 
 se-201-04.lab.          3600    IN      NS      ns.se-201-04.lab.
-;; Received 103 bytes from 10.53.0.3#53(ns1.nic.lab) in 79 ms
+;; Received 103 bytes from 10.53.0.3#53(ns1.nic.lab) in 41 ms
 
 ns.se-201-04.lab.       120     IN      A       10.53.1.1
 se-201-04.lab.          120     IN      NS      ns.se-201-04.lab.
@@ -251,7 +327,7 @@ se-201-04.lab.          120     IN      NS      ns.se-201-04.lab.
 | Запит | TTL запису NS | Прапорець `aa` | Секція, у якій міститься NS |
 |---|---|---|---|
 | `dig @10.53.0.3 se-201-04.lab NS +norec` | 3600 | - тільки qr | AUTHORITY |
-| `dig @10.53.1.1 se-201-04.lab NS +norec` | 120 | так | ANSWER |
+| `dig @10.53.1.1 se-201-04.lab NS +norec` | 120 | так | AUTHORITY |
 
 1. Які відповіді є відсиланнями і за якими ознаками це визначено? **Відсиланням є відповідь DNS-сервера, яка не містить запитаної IP-адреси, а вказує на інший DNS-сервер, до якого потрібно звернутися для отримання подальшої інформації. У результаті команди - повернулося у секції AUTHORITY NS-запис lab. IN NS ns1.nic.lab., а в секції ADDITIONAL — IP-адресу 10.53.0.3 цього сервера.**
 
@@ -274,12 +350,192 @@ zone reload up-to-date
 
 | Запис | status | Прапорець `aa` | Значення в ANSWER | TTL | Відповідає картці (так/ні) |
 |---|---|---|---|---|---|
-| `www` A | NOERROR | так | 10.53.0.80 | 120 | так |
+| `www` A | NOERROR | так | 10.53.0.81 | 120 | так |
 | псевдонім CNAME | NOERROR | так | www.se-201-04.lab. | 120 | так |
 | `mail` A | NOERROR | так | 10.53.0.80 | 120 | так |
 | `@` MX | NOERROR | так | 15 mail.se-201-04.lab. | 120 | так |
 | `@` TXT | NOERROR | так | "lab-token=66634402" | 120 | так |
 | другий хост A | NOERROR | так | 10.53.0.81 | 25 | так |
+
+Вивід усіх 6 записів:
+```text
+root@ns-se-201-04:/# dig @10.53.1.1 www.se-201-04.lab A +norec
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @10.53.1.1 www.se-201-04.lab A +norec
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 34169
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 2a9a954461f9fbc4010000006aeae32628fdfc68973e3d6d (good)
+;; QUESTION SECTION:
+;www.se-201-04.lab.             IN      A
+
+;; ANSWER SECTION:
+www.se-201-04.lab.      120     IN      A       10.53.0.81
+
+;; AUTHORITY SECTION:
+se-201-04.lab.          120     IN      NS      ns.se-201-04.lab.
+
+;; ADDITIONAL SECTION:
+ns.se-201-04.lab.       120     IN      A       10.53.1.1
+
+;; Query time: 0 msec
+;; SERVER: 10.53.1.1#53(10.53.1.1) (UDP)
+;; WHEN: Wed Nov 04 07:47:50 UTC 2026
+;; MSG SIZE  rcvd: 123
+
+root@ns-se-201-04:/# dig @10.53.1.1 api.se-201-04.lab CNAME +norec
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @10.53.1.1 api.se-201-04.lab CNAME +norec
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 2238
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 07a61419ff0f32c1010000006aeae36d6ecf9893bb116b67 (good)
+;; QUESTION SECTION:
+;api.se-201-04.lab.             IN      CNAME
+
+;; ANSWER SECTION:
+api.se-201-04.lab.      120     IN      CNAME   www.se-201-04.lab.
+
+;; AUTHORITY SECTION:
+se-201-04.lab.          120     IN      NS      ns.se-201-04.lab.
+
+;; ADDITIONAL SECTION:
+ns.se-201-04.lab.       120     IN      A       10.53.1.1
+
+;; Query time: 0 msec
+;; SERVER: 10.53.1.1#53(10.53.1.1) (UDP)
+;; WHEN: Wed Nov 04 07:49:01 UTC 2026
+;; MSG SIZE  rcvd: 125
+
+root@ns-se-201-04:/# dig @10.53.1.1 mail.se-201-04.lab A +norec
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @10.53.1.1 mail.se-201-04.lab A +norec
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 7671
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: a2be5d1c34ae4926010000006aeae39c21f5a8d4679c034f (good)
+;; QUESTION SECTION:
+;mail.se-201-04.lab.            IN      A
+
+;; ANSWER SECTION:
+mail.se-201-04.lab.     120     IN      A       10.53.0.80
+
+;; AUTHORITY SECTION:
+se-201-04.lab.          120     IN      NS      ns.se-201-04.lab.
+
+;; ADDITIONAL SECTION:
+ns.se-201-04.lab.       120     IN      A       10.53.1.1
+
+;; Query time: 0 msec
+;; SERVER: 10.53.1.1#53(10.53.1.1) (UDP)
+;; WHEN: Wed Nov 04 07:49:48 UTC 2026
+;; MSG SIZE  rcvd: 124
+
+root@ns-se-201-04:/# dig @10.53.1.1 se-201-04.lab MX +norec
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @10.53.1.1 se-201-04.lab MX +norec
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 64902
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 3
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 5b98c8674b19bbb7010000006aeae400832e741bd7af4835 (good)
+;; QUESTION SECTION:
+;se-201-04.lab.                 IN      MX
+
+;; ANSWER SECTION:
+se-201-04.lab.          120     IN      MX      15 mail.se-201-04.lab.
+
+;; AUTHORITY SECTION:
+se-201-04.lab.          120     IN      NS      ns.se-201-04.lab.
+
+;; ADDITIONAL SECTION:
+mail.se-201-04.lab.     120     IN      A       10.53.0.80
+ns.se-201-04.lab.       120     IN      A       10.53.1.1
+
+;; Query time: 1 msec
+;; SERVER: 10.53.1.1#53(10.53.1.1) (UDP)
+;; WHEN: Wed Nov 04 07:51:28 UTC 2026
+;; MSG SIZE  rcvd: 140
+
+root@ns-se-201-04:/# dig @10.53.1.1 se-201-04.lab TXT +norec
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @10.53.1.1 se-201-04.lab TXT +norec
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 33713
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 96bf88e1428edd48010000006aeae420f8ca3c2b06559840 (good)
+;; QUESTION SECTION:
+;se-201-04.lab.                 IN      TXT
+
+;; ANSWER SECTION:
+se-201-04.lab.          120     IN      TXT     "lab-token=66634402"
+
+;; AUTHORITY SECTION:
+se-201-04.lab.          120     IN      NS      ns.se-201-04.lab.
+
+;; ADDITIONAL SECTION:
+ns.se-201-04.lab.       120     IN      A       10.53.1.1
+
+;; Query time: 0 msec
+;; SERVER: 10.53.1.1#53(10.53.1.1) (UDP)
+;; WHEN: Wed Nov 04 07:52:00 UTC 2026
+;; MSG SIZE  rcvd: 134
+
+root@ns-se-201-04:/# dig @10.53.1.1 test.se-201-04.lab A +norec
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @10.53.1.1 test.se-201-04.lab A +norec
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 44766
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 779df2709d78eb32010000006aeae444521fc218d897b789 (good)
+;; QUESTION SECTION:
+;test.se-201-04.lab.            IN      A
+
+;; ANSWER SECTION:
+test.se-201-04.lab.     25      IN      A       10.53.0.81
+
+;; AUTHORITY SECTION:
+se-201-04.lab.          120     IN      NS      ns.se-201-04.lab.
+
+;; ADDITIONAL SECTION:
+ns.se-201-04.lab.       120     IN      A       10.53.1.1
+
+;; Query time: 0 msec
+;; SERVER: 10.53.1.1#53(10.53.1.1) (UDP)
+;; WHEN: Wed Nov 04 07:52:36 UTC 2026
+;; MSG SIZE  rcvd: 124
+
+root@ns-se-201-04:/# 
+```
 
 Порівняння відповідей резолвера та власного сервера:
 
@@ -685,8 +941,3 @@ new-rlwml IN A      10.53.0.80
 
 Використовувалися інструменти ШІ: ні
 
-<!-- Якщо так, заповнити таблицю: один рядок на кожне звернення, що вплинуло на звіт. Промпт наводити дослівно. -->
-
-| № | Інструмент | Промпт (дослівно) | Що використано у звіті і що змінено самостійно |
-|---|---|---|---|
-| 1 | | | |
